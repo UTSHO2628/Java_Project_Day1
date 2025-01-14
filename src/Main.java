@@ -2,9 +2,9 @@ import java.sql.*;
 import java.util.Scanner;
 
 public class Main {
-    static final String DB_URL = "jdbc:mysql://localhost:3306/student_management"; // Replace with your database name
-    static final String DB_USER = "root"; // Replace with your database username
-    static final String DB_PASSWORD = ""; // Replace with your database password
+    static final String DB_URL = "jdbc:mysql://localhost:3306/student_management"; 
+    static final String DB_USER = "root"; 
+    static final String DB_PASSWORD = ""; 
 
     public static void main(String[] args) {
         // Test if MySQL Driver is loading properly
