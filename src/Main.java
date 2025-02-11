@@ -1,170 +1,157 @@
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.sql.*;
-import java.util.Scanner;
 
-public class Main {
-    static final String DB_URL = "jdbc:mysql://localhost:3306/student_management"; 
-    static final String DB_USER = "root"; 
-    static final String DB_PASSWORD = ""; 
+public class Main extends JFrame {
+    static final String DB_URL = "jdbc:mysql://localhost:3306/student_management";
+    static final String DB_USER = "root";
+    static final String DB_PASSWORD = "";
 
-    public static void main(String[] args) {
-        // Test if MySQL Driver is loading properly
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            System.out.println("Driver loaded successfully!");
-        } catch (ClassNotFoundException e) {
-            System.out.println("Error: Unable to load MySQL Driver!");
-            e.printStackTrace();
-            return;
-        }
+    private JTextField idField, nameField, ageField, emailField, phoneField;
+    private JTable table;
+    private DefaultTableModel model;
 
-        // Main program loop
-        Scanner scanner = new Scanner(System.in);
-        while (true) {
-            System.out.println("\n===== Student Management System =====");
-            System.out.println("1. Add Student");
-            System.out.println("2. View Students");
-            System.out.println("3. Update Student");
-            System.out.println("4. Delete Student");
-            System.out.println("5. Exit");
-            System.out.print("Enter your choice: ");
-            
-            int choice = scanner.nextInt();
-            scanner.nextLine(); // Consume newline
+    public Main() {
+        setTitle("Student Management System");
+        setSize(600, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-            switch (choice) {
-                case 1:
-                    addStudent(scanner);
-                    break;
-                case 2:
-                    viewStudents();
-                    break;
-                case 3:
-                    updateStudent(scanner);
-                    break;
-                case 4:
-                    deleteStudent(scanner);
-                    break;
-                case 5:
-                    System.out.println("Exiting... Goodbye!");
-                    scanner.close();
-                    return;
-                default:
-                    System.out.println("Invalid choice. Please try again.");
-            }
-        }
+        // ==== Input Panel ====
+        JPanel inputPanel = new JPanel(new GridLayout(6, 2, 10, 10));
+
+        inputPanel.add(new JLabel("ID:"));
+        idField = new JTextField();
+        inputPanel.add(idField);
+
+        inputPanel.add(new JLabel("Name:"));
+        nameField = new JTextField();
+        inputPanel.add(nameField);
+
+        inputPanel.add(new JLabel("Age:"));
+        ageField = new JTextField();
+        inputPanel.add(ageField);
+
+        inputPanel.add(new JLabel("Email:"));
+        emailField = new JTextField();
+        inputPanel.add(emailField);
+
+        inputPanel.add(new JLabel("Phone:"));
+        phoneField = new JTextField();
+        inputPanel.add(phoneField);
+
+        add(inputPanel, BorderLayout.NORTH);
+
+        // ==== Button Panel ====
+        JPanel buttonPanel = new JPanel();
+
+        JButton addButton = new JButton("Add Student");
+        JButton viewButton = new JButton("View Students");
+        JButton updateButton = new JButton("Update Student");
+        JButton deleteButton = new JButton("Delete Student");
+
+        buttonPanel.add(addButton);
+        buttonPanel.add(viewButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(deleteButton);
+
+        add(buttonPanel, BorderLayout.CENTER);
+
+        // ==== Table Panel ====
+        model = new DefaultTableModel(new String[]{"ID", "Name", "Age", "Email", "Phone"}, 0);
+        table = new JTable(model);
+        add(new JScrollPane(table), BorderLayout.SOUTH);
+
+        // ==== Button Actions ====
+        addButton.addActionListener(e -> addStudent());
+        viewButton.addActionListener(e -> viewStudents());
+        updateButton.addActionListener(e -> updateStudent());
+        deleteButton.addActionListener(e -> deleteStudent());
     }
 
-    // Method to add a student
-    private static void addStudent(Scanner scanner) {
-        System.out.print("Enter Student ID: ");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-
-        System.out.print("Enter Student Name: ");
-        String name = scanner.nextLine();
-        System.out.print("Enter Student Age: ");
-        int age = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        System.out.print("Enter Student Email: ");
-        String email = scanner.nextLine();
-        System.out.print("Enter Student Phone Number: ");
-        String phone = scanner.nextLine();
-
-        String query = "INSERT INTO students (id, name, age, email, phone) VALUES (?, ?, ?, ?, ?)";
-
+    // ==== Add Student Method ====
+    private void addStudent() {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, id);
-            stmt.setString(2, name);
-            stmt.setInt(3, age);
-            stmt.setString(4, email);
-            stmt.setString(5, phone);
-            int rows = stmt.executeUpdate();
-            if (rows > 0) {
-                System.out.println("Student added successfully!");
-            }
+             PreparedStatement stmt = conn.prepareStatement("INSERT INTO students (id, name, age, email, phone) VALUES (?, ?, ?, ?, ?)")) {
+
+            stmt.setInt(1, Integer.parseInt(idField.getText()));
+            stmt.setString(2, nameField.getText());
+            stmt.setInt(3, Integer.parseInt(ageField.getText()));
+            stmt.setString(4, emailField.getText());
+            stmt.setString(5, phoneField.getText());
+
+            stmt.executeUpdate();
+            JOptionPane.showMessageDialog(this, "Student Added Successfully!");
+            viewStudents();
         } catch (SQLException e) {
-            System.out.println("Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
     }
 
-    // Method to view all students
-    private static void viewStudents() {
-        String query = "SELECT * FROM students";
-
+    // ==== View Students Method ====
+    private void viewStudents() {
+        model.setRowCount(0); // Clear table
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
              Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            System.out.println("\n===== Student List =====");
+             ResultSet rs = stmt.executeQuery("SELECT * FROM students")) {
+
             while (rs.next()) {
-                System.out.println("ID: " + rs.getInt("id") +
-                                   ", Name: " + rs.getString("name") +
-                                   ", Age: " + rs.getInt("age") +
-                                   ", Email: " + rs.getString("email") +
-                                   ", Phone: " + rs.getString("phone"));
+                model.addRow(new Object[]{rs.getInt("id"), rs.getString("name"), rs.getInt("age"), rs.getString("email"), rs.getString("phone")});
             }
         } catch (SQLException e) {
-            System.out.println("Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
     }
 
-    // Method to update a student's details
-    private static void updateStudent(Scanner scanner) {
-        System.out.print("Enter Student ID to update: ");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-
-        System.out.print("Enter new Name: ");
-        String name = scanner.nextLine();
-        System.out.print("Enter new Age: ");
-        int age = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-        System.out.print("Enter new Email: ");
-        String email = scanner.nextLine();
-        System.out.print("Enter new Phone Number: ");
-        String phone = scanner.nextLine();
-
-        String query = "UPDATE students SET name = ?, age = ?, email = ?, phone = ? WHERE id = ?";
-
+    // ==== Update Student Method ====
+    private void updateStudent() {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, name);
-            stmt.setInt(2, age);
-            stmt.setString(3, email);
-            stmt.setString(4, phone);
-            stmt.setInt(5, id);
+             PreparedStatement stmt = conn.prepareStatement("UPDATE students SET name=?, age=?, email=?, phone=? WHERE id=?")) {
+
+            stmt.setString(1, nameField.getText());
+            stmt.setInt(2, Integer.parseInt(ageField.getText()));
+            stmt.setString(3, emailField.getText());
+            stmt.setString(4, phoneField.getText());
+            stmt.setInt(5, Integer.parseInt(idField.getText()));
+
             int rows = stmt.executeUpdate();
             if (rows > 0) {
-                System.out.println("Student updated successfully!");
+                JOptionPane.showMessageDialog(this, "Student Updated Successfully!");
+                viewStudents();
             } else {
-                System.out.println("Student not found.");
+                JOptionPane.showMessageDialog(this, "Student Not Found!");
             }
         } catch (SQLException e) {
-            System.out.println("Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
     }
 
-    // Method to delete a student
-    private static void deleteStudent(Scanner scanner) {
-        System.out.print("Enter Student ID to delete: ");
-        int id = scanner.nextInt();
-        scanner.nextLine(); // Consume newline
-
-        String query = "DELETE FROM students WHERE id = ?";
-
+    // ==== Delete Student Method ====
+    private void deleteStudent() {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, id);
+             PreparedStatement stmt = conn.prepareStatement("DELETE FROM students WHERE id=?")) {
+
+            stmt.setInt(1, Integer.parseInt(idField.getText()));
+
             int rows = stmt.executeUpdate();
             if (rows > 0) {
-                System.out.println("Student deleted successfully!");
+                JOptionPane.showMessageDialog(this, "Student Deleted Successfully!");
+                viewStudents();
             } else {
-                System.out.println("Student not found.");
+                JOptionPane.showMessageDialog(this, "Student Not Found!");
             }
         } catch (SQLException e) {
-            System.out.println("Error: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
         }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new Main().setVisible(true));
     }
 }
-// Project run ==== java -cp ".;../lib/mysql-connector-java-9.1.0.jar" Main
+
+// for Project run ==== java -cp ".;../lib/mysql-connector-java-9.1.0.jar" Main
 // xaamp using for server
